@@ -1,0 +1,116 @@
+/**
+ * Google Apps Script - List all files and folders within the selected folder (see hint) that have been shared with others & write into a speadsheet.
+ *    - Main function: List all files & folders
+ * 
+ * Hint: Set your folder ID first! You may copy the folder ID from the browser's address field. 
+ *       The folder ID is everything after the 'folders/' portion of the URL.
+ *       The root folder in your drive can be replaced by the alias 'root'.
+ * 
+ *       Based on the mesgarpour script for listing files and folders.
+ * @version 1.0
+ * @see     https://github.com/mesgarpour
+ */
+ 
+// TODO: Set folder ID
+var initFolderID = '0B1vB4rS5x25bZ3lscTF4b2V3QUk';
+
+// Other Variables
+var initOwnerEmail = Session.getActiveUser().getEmail();
+
+
+// Main function: List all files & folders & write into the current sheet.
+function listAllShared(){
+  //getFolderTree('0B1vB4rS5x25bUHN2N0ZfOUNUMm8', true); 
+  getFolderTree(initFolderID, initOwnerEmail, true, 'patata'); //Need to pass some useless variable due to Google Scripting Cache issues (well known).
+};
+
+// =================
+// Get Folder Tree
+function getFolderTree(folderId, ownerEmail, listAll) {
+  try {
+    // Get folder by id
+    var parentFolder = DriveApp.getFolderById(folderId);
+    
+    // Initialise the sheet
+    var file, data, sheet = SpreadsheetApp.getActiveSheet();
+    sheet.clear();
+    // sheet.appendRow(["Files in folder \'" + parentFolder + "\' which are owned by \'" + ownerEmail + "\' and are shared with others."]);
+    sheet.appendRow(["Identification of files"]);
+    Logger.log([parentFolder]);
+    //sheet.appendRow(["In folder:       " + parentFolder, "", "Number of Folders:"]);
+    //sheet.getRange(2,4).setFormula('=COUNTIF(B:B, "Folder")');
+    //sheet.appendRow(["Owned by:    " + ownerEmail, "", "Number of Files:"]);
+    //sheet.getRange(3,4).setFormula('=COUNTIF(B:B, "File")');
+    sheet.appendRow(["In folder:       " + parentFolder]);
+    sheet.appendRow(["Owned by:    " + ownerEmail]);
+    sheet.appendRow(["That are shared with others."]);
+    sheet.appendRow([" "]);
+    sheet.appendRow(["Name", "Type", "Owner", "Sharing", "Editors", "Full Path", "URL", "Date", "Last Updated", "Size", "Description"]);
+    sheet.setFrozenRows(6);
+    
+    // Get files and folders
+    getChildFolders(parentFolder.getName(), parentFolder, data, sheet, ownerEmail, listAll);
+    
+  } catch (e) {
+    Logger.log(e.toString());
+  }
+};
+
+// Get the list of files and folders and their metadata in recursive mode
+function getChildFolders(parentName, parent, data, sheet, ownerEmail, listAll) {
+  var childFolders = parent.getFolders();
+  
+  // List folders inside the folder
+  while (childFolders.hasNext()) {
+    var childFolder = childFolders.next();
+    var childFolderOwnerEmail = childFolder.getOwner().getEmail();
+    var childFolderEditors = childFolder.getEditors();
+      for (var i = 0; i < childFolderEditors.length; i++) {
+        data = [ 
+          childFolder.getName(),
+          "Folder",
+          childFolder.getOwner().getEmail(),
+          childFolder.getSharingAccess(),
+          childFolderEditors[i].getEmail(),
+          parentName + "/" + childFolder.getName(),
+          childFolder.getUrl(),
+          childFolder.getDateCreated(),
+          childFolder.getLastUpdated(),
+          childFolder.getSize(),
+          childFolder.getDescription()
+        ];
+        // Write
+        //sheet.appendRow(data);
+        if (ownerEmail == childFolderOwnerEmail) {sheet.appendRow(data)};
+      }
+    // List files inside the folder
+    var files = childFolder.getFiles();
+    while (listAll & files.hasNext()) {
+      var childFile = files.next();
+      var childFileOwnerEmail = childFile.getOwner().getEmail();
+      var childFileEditors = childFile.getEditors();
+        for (var i = 0; i < childFileEditors.length; i++) {
+          data = [ 
+              childFile.getName(),
+              "File",
+              childFile.getOwner().getEmail(),
+              childFile.getSharingAccess(),
+              childFileEditors[i].getEmail(),
+              parentName + "/" + childFolder.getName() + "/" + childFile.getName(),
+              childFile.getUrl(),
+              childFile.getDateCreated(),
+              childFile.getLastUpdated(),
+              childFile.getSize(),
+              childFile.getDescription()
+          ];
+          // Write
+          //sheet.appendRow(data);
+          if (ownerEmail == childFileOwnerEmail) {sheet.appendRow(data)}
+        }
+    }
+    
+    // Recursive call of the subfolder
+    //SpreadsheetApp.flush();
+    getChildFolders(parentName + "/" + childFolder.getName(), childFolder, data, sheet, ownerEmail, listAll);  
+  }
+};
