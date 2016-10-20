@@ -30,7 +30,6 @@ function getFolderTree(folderId, ownerEmail, listAll) {
   try {
     // Get folder by id
     var parentFolder = DriveApp.getFolderById(folderId);
-    
     // Initialise the sheet
     var file, data, sheet = SpreadsheetApp.getActiveSheet();
     sheet.clear();
@@ -47,6 +46,7 @@ function getFolderTree(folderId, ownerEmail, listAll) {
     sheet.appendRow([" "]);
     sheet.appendRow(["Name", "Type", "Owner", "Sharing", "Editors", "Full Path", "URL", "Date", "Last Updated", "Size", "Description"]);
     sheet.setFrozenRows(6);
+    
     
     // Get files and folders
     getChildFolders(parentFolder.getName(), parentFolder, data, sheet, ownerEmail, listAll);
@@ -66,43 +66,49 @@ function getChildFolders(parentName, parent, data, sheet, ownerEmail, listAll) {
     var childFolderOwnerEmail = childFolder.getOwner().getEmail();
     var childFolderEditors = childFolder.getEditors();
       for (var i = 0; i < childFolderEditors.length; i++) {
-        data = [ 
-          childFolder.getName(),
-          "Folder",
-          childFolder.getOwner().getEmail(),
-          childFolder.getSharingAccess(),
-          childFolderEditors[i].getEmail(),
-          parentName + "/" + childFolder.getName(),
-          childFolder.getUrl(),
-          childFolder.getDateCreated(),
-          childFolder.getLastUpdated(),
-          childFolder.getSize(),
-          childFolder.getDescription()
-        ];
+        if (i == 0) {
+          data = [ 
+            childFolder.getName(),
+            "Folder",
+            childFolder.getOwner().getEmail(),
+            childFolder.getSharingAccess(),
+            childFolderEditors[i].getEmail(),
+            parentName + "/" + childFolder.getName(),
+            childFolder.getUrl(),
+            childFolder.getDateCreated(),
+            childFolder.getLastUpdated(),
+            childFolder.getSize(),
+            childFolder.getDescription()
+          ];
+        }
+        else {data = ["","","","", childFolderEditors[i].getEmail(),"","","","",""];}
         // Write
         //sheet.appendRow(data);
-        if (ownerEmail == childFolderOwnerEmail) {sheet.appendRow(data)};
+        if (ownerEmail == childFolderOwnerEmail) {sheet.appendRow(data)}
       }
     // List files inside the folder
     var files = childFolder.getFiles();
     while (listAll & files.hasNext()) {
       var childFile = files.next();
       var childFileOwnerEmail = childFile.getOwner().getEmail();
-      var childFileEditors = childFile.getEditors();
+      var childFileEditors = childFolder.getEditors();
         for (var i = 0; i < childFileEditors.length; i++) {
-          data = [ 
-              childFile.getName(),
-              "File",
-              childFile.getOwner().getEmail(),
-              childFile.getSharingAccess(),
-              childFileEditors[i].getEmail(),
-              parentName + "/" + childFolder.getName() + "/" + childFile.getName(),
-              childFile.getUrl(),
-              childFile.getDateCreated(),
-              childFile.getLastUpdated(),
-              childFile.getSize(),
-              childFile.getDescription()
-          ];
+          if (i == 0) {
+            data = [ 
+                childFile.getName(),
+                "File",
+                childFile.getOwner().getEmail(),
+                childFile.getSharingAccess(),
+                childFileEditors[i].getEmail(),
+                parentName + "/" + childFolder.getName() + "/" + childFile.getName(),
+                childFile.getUrl(),
+                childFile.getDateCreated(),
+                childFile.getLastUpdated(),
+                childFile.getSize(),
+                childFile.getDescription()
+            ];
+          }
+          else {data = ["","","","", childFileEditors[i].getEmail(),"","","","",""];}
           // Write
           //sheet.appendRow(data);
           if (ownerEmail == childFileOwnerEmail) {sheet.appendRow(data)}
